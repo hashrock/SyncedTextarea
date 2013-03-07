@@ -4,7 +4,10 @@
     <script src="./diff_match_patch.js"></script>
 
     <script type="text/javascript">
-    var original;
+    var local_text;
+    var my_id = makeid(4);
+    var dmp = new diff_match_patch();
+    var editor;
 
     function makeid(id_length)
     {
@@ -14,49 +17,57 @@
             text += possible.charAt(Math.floor(Math.random() * possible.length));
         return text;
     }
-    var id;
+
+
+    function applyPatch(diff_patch){
+        var patches = dmp.patch_fromText(diff_patch);
+        var results = dmp.patch_apply(patches, local_text);
+        var result = results[0];
+        editor.val(result);
+        local_text = result;
+    }
+
+    function makePatch(old_text, new_text){
+        var diff = dmp.diff_main(old_text, new_text);
+        var patch_list  = dmp.patch_make(old_text, new_text, diff);
+        return dmp.patch_toText(patch_list);
+    }
 
     $(function(){
-      id = makeid(4);
-      original = $("#editor").val();
-      var show = function(el){
-        return function(msg){ el.innerHTML = msg + '<br />' + el.innerHTML; }
-      }(document.getElementById('msgs'));
+      editor = $("#editor");
+      local_text = editor.val();
 
       var ws       = new WebSocket('ws://' + window.location.host + "/sync");
-      ws.onopen    = function()  {}
-      ws.onclose   = function()  { }
-
+      ws.onopen    = function()  {editor.removeAttr("disabled");}
+      ws.onclose   = function()  {editor.attr("disabled", "disabled");}
       ws.onmessage = function(m) {
         var j = JSON.parse(m.data);
-        if(j[0] == 'init'){
-          original = j[1];
-          $("#editor").val(original);
+        var session_id = j[0];
+        var textdata = j[1];
+
+        // Init is for initialize text
+        if(session_id == 'init'){
+          local_text = textdata;
+          editor.val(local_text);
           return;
         }
 
-        if(j[0] == id){
+        //Ignore patch by myself
+        if(session_id == my_id){
           return;
         }
 
-        var dmp = new diff_match_patch();
-        var patches = dmp.patch_fromText(j[1]);
-        var results = dmp.patch_apply(patches, original);
-        var result = results[0];
-        $("#editor").val(result);
-        original = result;
+        //TODO: Update later while editing text
+        applyPatch(textdata);
       };
 
-    	$("#editor").on("keyup", function(){
-  		  var text = $("#editor").val();
-        var dmp = new diff_match_patch();
-        var diff = dmp.diff_main(original, text);
-        var patch_list  = dmp.patch_make(original, text, diff);
-        var patch_text = dmp.patch_toText(patch_list);
+    	editor.on("keyup", function(){
+  		  var new_text = editor.val();
+
+        var patch_text = makePatch(local_text, new_text);
         if(patch_text != ""){
-          var obj = [id, patch_text];
-          ws.send( JSON.stringify(obj));
-          original = text;
+          ws.send( JSON.stringify([my_id, patch_text]));
+          local_text = new_text;
         }
     	});
     });
@@ -65,7 +76,11 @@
   </head>
 
   <body>
-     <h1>SyncPad</h1>
-     <textarea id="editor" rows=40 cols=40>Original Message</textarea>
+    <h1>SyncPad</h1>
+    <p>Realtime syncing textarea via WebSocket. This is simple example.</p>
+
+    <p><a href="/index.html" target="_blank">Open New SyncPad</a></p>
+    <textarea id="editor" rows=40 cols=40 disabled>loading...</textarea>
+    <p>fork me on <a href="https://github.com/181dev/SyncedTextarea">GitHub</a></p>
   </body>
 </html>
