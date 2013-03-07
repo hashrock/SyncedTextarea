@@ -1,11 +1,25 @@
 SyncedTextarea
 ==============
 
-WebSocket Realtime Collaboration Textarea
+Just Textarea. I love Etherpad, but It's works on node.
+
+ * Realtime syncing with WebSocket.
+ * Works on chrome
+ * Ruby 1.9.3 + sinatra + thin
+
 
 Getting started
 ----
 
-> ruby app.rb
+```
+bundle
+```
 
-> http://localhost:4567/index.html
+```
+ruby app.rb
+```
+
+Lisence
+----
+
+MIT
