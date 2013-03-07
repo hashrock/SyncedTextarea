@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <script src="./jquery.js"></script>
+    <script src="./diff_match_patch.js"></script>
+
+    <script type="text/javascript">
+    var original;
+
+    function makeid(id_length)
+    {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        for( var i=0; i < id_length; i++ )
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        return text;
+    }
+    var id;
+
+    $(function(){
+      id = makeid(4);
+      original = $("#editor").val();
+      var show = function(el){
+        return function(msg){ el.innerHTML = msg + '<br />' + el.innerHTML; }
+      }(document.getElementById('msgs'));
+
+      var ws       = new WebSocket('ws://' + window.location.host + "/sync");
+      ws.onopen    = function()  {}
+      ws.onclose   = function()  { }
+
+      ws.onmessage = function(m) {
+        var j = JSON.parse(m.data);
+        if(j[0] == 'init'){
+          original = j[1];
+          $("#editor").val(original);
+          return;
+        }
+
+        if(j[0] == id){
+          return;
+        }
+
+        var dmp = new diff_match_patch();
+        var patches = dmp.patch_fromText(j[1]);
+        var results = dmp.patch_apply(patches, original);
+        var result = results[0];
+        $("#editor").val(result);
+        original = result;
+      };
+
+    	$("#editor").on("keyup", function(){
+  		  var text = $("#editor").val();
+        var dmp = new diff_match_patch();
+        var diff = dmp.diff_main(original, text);
+        var patch_list  = dmp.patch_make(original, text, diff);
+        var patch_text = dmp.patch_toText(patch_list);
+        if(patch_text != ""){
+          var obj = [id, patch_text];
+          ws.send( JSON.stringify(obj));
+          original = text;
+        }
+    	});
+    });
+    
+    </script>
+  </head>
+
+  <body>
+     <h1>SyncPad</h1>
+     <textarea id="editor" rows=40 cols=40>Original Message</textarea>
+  </body>
+</html>
