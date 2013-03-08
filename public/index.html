@@ -1,6 +1,7 @@
 <html>
   <head>
     <script src="./jquery.js"></script>
+    <script src="./bindWithDelay.js"></script>
     <script src="./diff_match_patch.js"></script>
     <script src="http://js.pusher.com/1.12/pusher.min.js" type="text/javascript"></script>
     <script type="text/javascript">
@@ -43,7 +44,6 @@
         editor.removeAttr("disabled");
       });
 
-
       var pusher = new Pusher('9b7c9bac85e57a43afa5');
       var channel = pusher.subscribe('test_channel');
       channel.bind('my_event', function(data) {
@@ -57,18 +57,17 @@
         //TODO: Update later while editing text
         applyPatch(textdata);
       });
-
-    	editor.on("keyup", function(){
-  		  var new_text = editor.val();
+      
+      editor.bindWithDelay("keyup", function(){
+        var new_text = editor.val();
         var patch_text = makePatch(local_text, new_text);
         if(patch_text != ""){
           $.post("/sync", {id: my_id, msg: patch_text })
           .done(function() { })
-          .fail(function() { alert("Error, Failed to save file :("); });
-          //ws.send( JSON.stringify([my_id, patch_text]));
+          .fail(function() { alert("Error, Posting changes is failed."); });
           local_text = new_text;
         }
-    	});
+      }, 1000);
     });
     
     </script>
