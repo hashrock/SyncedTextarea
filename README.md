@@ -7,6 +7,7 @@ Just Textarea. I love Etherpad, but It's works on node.
  * Works on chrome
  * Ruby 1.9.3 + sinatra + thin
 
+[Demo](http://whispering-citadel-2810.herokuapp.com/index.html)
 
 Getting started
 ----
