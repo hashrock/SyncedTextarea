@@ -1,39 +1,33 @@
-require 'sinatra'
-require 'sinatra-websocket'
-require 'json'
-require 'diff_match_patch'
 
-configure do
-  set :server, 'thin'
-  set :sockets, []
-  set :textdata, "Hello There"
-end
+module SyncPad
+  require 'sinatra/base'
+  require 'json'
+  require 'diff_match_patch'
+  require 'pusher'
+  class App < Sinatra::Base
+    configure do
+      @@textdata = "Hello There"
+      Pusher.app_id = ENV['PUSHER_APP_ID']
+      Pusher.key = ENV['PUSHER_KEY']
+      Pusher.secret = ENV['PUSHER_SECRET']
+    end
 
-get '/' do
-  redirect 'index.html'
-end
+    get '/' do
+      redirect 'index.html'
+    end
 
-get '/sync' do
-  if !request.websocket?
-    erb :index
-  else
-    request.websocket do |ws|
-      ws.onopen do
-        ws.send(JSON.generate(["init",settings.textdata]))
-        settings.sockets << ws
-      end
-      ws.onmessage do |msg|
-        #Update textdata by patch
-        @dmp = DiffMatchPatch.new
-        EM.next_tick { settings.sockets.each{|s| s.send(msg) } }
-        patch = JSON.parse(msg)[1];
-        patches = @dmp.patch_fromText(patch)
-        patched = @dmp.patch_apply(patches, settings.textdata)
-        set :textdata, patched[0]
-      end
-      ws.onclose do
-        settings.sockets.delete(ws)
-      end
+    get '/init' do
+      @@textdata
+    end
+
+    post '/sync' do
+      id = params[:id]
+      patch = params[:msg]
+      @dmp = DiffMatchPatch.new
+      Pusher['test_channel'].trigger('my_event', {:id => id, :msg => patch})
+      patches = @dmp.patch_fromText(patch)
+      patched = @dmp.patch_apply(patches, @@textdata)
+      @@textdata = patched[0]
     end
   end
 end

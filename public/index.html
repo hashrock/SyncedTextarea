@@ -2,7 +2,7 @@
   <head>
     <script src="./jquery.js"></script>
     <script src="./diff_match_patch.js"></script>
-
+    <script src="http://js.pusher.com/1.12/pusher.min.js" type="text/javascript"></script>
     <script type="text/javascript">
     var local_text;
     var my_id = makeid(4);
@@ -37,36 +37,35 @@
       editor = $("#editor");
       local_text = editor.val();
 
-      var ws       = new WebSocket('ws://' + window.location.host + "/sync");
-      ws.onopen    = function()  {editor.removeAttr("disabled");}
-      ws.onclose   = function()  {editor.attr("disabled", "disabled");}
-      ws.onmessage = function(m) {
-        var j = JSON.parse(m.data);
-        var session_id = j[0];
-        var textdata = j[1];
+      $.get("/init", function(data){
+        editor.val(data);
+        local_text = data;
+        editor.removeAttr("disabled");
+      });
 
-        // Init is for initialize text
-        if(session_id == 'init'){
-          local_text = textdata;
-          editor.val(local_text);
-          return;
-        }
+
+      var pusher = new Pusher('9b7c9bac85e57a43afa5');
+      var channel = pusher.subscribe('test_channel');
+      channel.bind('my_event', function(data) {
+        var session_id = data["id"];
+        var textdata = data["msg"];
 
         //Ignore patch by myself
         if(session_id == my_id){
           return;
         }
-
         //TODO: Update later while editing text
         applyPatch(textdata);
-      };
+      });
 
     	editor.on("keyup", function(){
   		  var new_text = editor.val();
-
         var patch_text = makePatch(local_text, new_text);
         if(patch_text != ""){
-          ws.send( JSON.stringify([my_id, patch_text]));
+          $.post("/sync", {id: my_id, msg: patch_text })
+          .done(function() { })
+          .fail(function() { alert("Error, Failed to save file :("); });
+          //ws.send( JSON.stringify([my_id, patch_text]));
           local_text = new_text;
         }
     	});

@@ -2,5 +2,5 @@
 source "https://rubygems.org"
 
 gem 'sinatra'
-gem 'sinatra-websocket'
 gem 'diff_match_patch'
+gem 'pusher'
