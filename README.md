@@ -1,5 +1,14 @@
+
+ *DEPRICATED* 
+
+ This repo is no longer maintained. I think ShareJS is better solution for this.
+
+  https://github.com/share/ShareJS
+
+
 SyncedTextarea
 ==============
+
 
 Just Textarea. I love Etherpad, but It's works on node.
 
